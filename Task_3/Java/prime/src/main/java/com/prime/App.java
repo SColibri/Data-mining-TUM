@@ -187,7 +187,8 @@ public class App
 					public void progress() {
 				System.out.println("....");
 					}
-							});
+			});
+			
 			try
 			{
 				IOUtils.copyBytes(inputStream, outputStream, 4096, false); 
