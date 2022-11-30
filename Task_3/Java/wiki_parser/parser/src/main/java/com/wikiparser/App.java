@@ -1,5 +1,6 @@
 package com.wikiparser;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.HashMap;
@@ -7,7 +8,17 @@ import java.util.Map;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
+
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 /**
  * Hello world!
@@ -126,5 +137,52 @@ public class App
                                                        .replace("=", " ");
 
         return result;
+    }
+
+    private static void load_fromServer()
+    {
+        JSch jsch = new JSch();
+        Session session = null;
+        /*
+         * If you get an ssh key error, use this coommand on the key:
+         * ssh-keygen -p -f <privateKeyFile> -m pem -P passphrase -N passphrase
+         * source: https://stackoverflow.com/questions/53134212/invalid-privatekey-when-using-jsch
+         */
+        try {
+            jsch.addIdentity("~/.ssh/lkey");
+            session = jsch.getSession("ubuntu", "10.195.6.37", 22);
+            //session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            ChannelSftp sftpChannel = (ChannelSftp) channel;
+
+            InputStream stream = sftpChannel.get("/home/ubuntu/Package/wikiDatabase.xml");
+            try {
+                BufferedReader br = new BufferedReader(new InputStreamReader(stream));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    System.out.println(line);
+                }
+
+            } catch (IOException io) {
+                System.out.println("Exception occurred during reading file from SFTP server due to " + io.getMessage());
+                io.getMessage();
+
+            } catch (Exception e) {
+                System.out.println("Exception occurred during reading file from SFTP server due to " + e.getMessage());
+                e.getMessage();
+
+            }
+
+            sftpChannel.exit();
+            session.disconnect();
+        } catch (JSchException e) {
+            e.printStackTrace();
+        } catch (SftpException e) {
+            e.printStackTrace();
+        }
+
     }
 }
