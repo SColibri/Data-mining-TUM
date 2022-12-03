@@ -39,7 +39,7 @@ public class App
 		// 					FILE PATHS
 		// -----------------------------------------------
 		String primeNumbersSource = "/home/ubuntu/resources/primeNumbers.txt";
-		String hadoopPrimeSource = "/home/ubuntu/input/primeNumbersScala.txt";
+		String hadoopPrimeSource = "/home/ubuntu/input/primeNumbers.txt";
 		String hadoopPrimeOutput = "/home/ubuntu/out/primeNumbersScala.out";
 		String hadoopAddress = "hdfs://192.168.4.83:9000";
 
