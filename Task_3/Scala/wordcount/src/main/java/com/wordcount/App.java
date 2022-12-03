@@ -41,7 +41,7 @@ public class App
 		// 					FILE PATHS
 		// -----------------------------------------------
 		String hadoopPrimeSource = "/home/ubuntu/wiki/wiki.txt";
-		String hadoopPrimeOutput = "/home/ubuntu/out/wiki.out";
+		String hadoopPrimeOutput = "/home/ubuntu/out/wikiScala.out";
 		String hadoopAddress = "hdfs://192.168.4.83:9000";
 
         // -----------------------------------------------
@@ -94,8 +94,7 @@ public class App
                         Context context
                         ) throws IOException, InterruptedException {
         int sum = 0;
-        for (IntWritable val : va
-        lues) {
+        for (IntWritable val : values) {
             sum += val.get();
         }
         result.set(sum);
