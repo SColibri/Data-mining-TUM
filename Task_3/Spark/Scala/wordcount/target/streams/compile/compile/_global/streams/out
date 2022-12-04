@@ -1,0 +1,7 @@
+[0m[[0m[31merror[0m] [0m[0m/home/ubuntu/Data-mining-TUM/Task_3/Spark/Scala/wordcount/src/main/scala/App.scala:10:5: not found: value Logger[0m
+[0m[[0m[31merror[0m] [0m[0m    Logger.getLogger("org").setLevel(Level.ERROR)[0m
+[0m[[0m[31merror[0m] [0m[0m    ^[0m
+[0m[[0m[31merror[0m] [0m[0m/home/ubuntu/Data-mining-TUM/Task_3/Spark/Scala/wordcount/src/main/scala/App.scala:10:38: not found: value Level[0m
+[0m[[0m[31merror[0m] [0m[0m    Logger.getLogger("org").setLevel(Level.ERROR)[0m
+[0m[[0m[31merror[0m] [0m[0m                                     ^[0m
+[0m[[0m[31merror[0m] [0m[0mtwo errors found[0m

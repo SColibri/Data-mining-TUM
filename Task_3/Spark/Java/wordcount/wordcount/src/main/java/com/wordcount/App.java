@@ -1,15 +1,8 @@
 package com.wordcount;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.JavaRDD;
-import scala.Tuple2;
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
 /**
  * Hello world!
  *
@@ -18,24 +11,73 @@ public class App
 {
     public static void main( String[] args )
     {
-        String hadoopPrimeSource = "/home/ubuntu/wiki/wiki.txt";
+        val spark:SparkSession = SparkSession.builder()
+            .master("local[3]")
+            .appName("SparkByExamples.com")
+            .getOrCreate()
 
-        wordCount(hadoopPrimeSource);
-    }
+        val sc = spark.sparkContext
 
-    private static void wordCount(String fileName) {
+        val rdd:RDD[String] = sc.textFile("src/main/resources/test.txt")
+        println("initial partition count:"+rdd.getNumPartitions)
 
-        SparkConf sparkConf = new SparkConf().setMaster("local").setAppName("Scala wordcount spark");
+        val reparRdd = rdd.repartition(4)
+        println("re-partition count:"+reparRdd.getNumPartitions)
 
-        JavaSparkContext sparkContext = new JavaSparkContext(sparkConf);
+        //rdd.coalesce(3)
 
-        JavaRDD<String> inputFile = sparkContext.textFile(fileName);
-        
-        JavaRDD<String> wordsFromFile = inputFile.flatMap(content -> Arrays.asList(content.split(" ")).iterator());
+        rdd.collect().foreach(println)
 
-        JavaPairRDD<String, Integer> countData = wordsFromFile.mapToPair(t -> new Tuple2(t, 1)).reduceByKey((x, y) -> (int) x + (int) y);
+        // rdd flatMap transformation
+        val rdd2 = rdd.flatMap(f=>f.split(" "))
+        rdd2.foreach(f=>println(f))
 
-        //countData.collect().forEach(t -> System.out.println(t._1+" : "+t._2));
-        countData.saveAsTextFile("ScalaWordcountSpark");
+        //Create a Tuple by adding 1 to each word
+        val rdd3:RDD[(String,Int)]= rdd2.map(m=>(m,1))
+        rdd3.foreach(println)
+
+        //Filter transformation
+        val rdd4 = rdd3.filter(a=> a._1.startsWith("a"))
+        rdd4.foreach(println)
+
+        //ReduceBy transformation
+        val rdd5 = rdd3.reduceByKey(_ + _)
+        rdd5.foreach(println)
+
+        //Swap word,count and sortByKey transformation
+        val rdd6 = rdd5.map(a=>(a._2,a._1)).sortByKey()
+        println("Final Result")
+
+        //Action - foreach
+        rdd6.foreach(println)
+
+        //Action - count
+        println("Count : "+rdd6.count())
+
+        //Action - first
+        val firstRec = rdd6.first()
+        println("First Record : "+firstRec._1 + ","+ firstRec._2)
+
+        //Action - max
+        val datMax = rdd6.max()
+        println("Max Record : "+datMax._1 + ","+ datMax._2)
+
+        //Action - reduce
+        val totalWordCount = rdd6.reduce((a,b) => (a._1+b._1,a._2))
+        println("dataReduce Record : "+totalWordCount._1)
+        //Action - take
+        val data3 = rdd6.take(3)
+        data3.foreach(f=>{
+        println("data3 Key:"+ f._1 +", Value:"+f._2)
+        })
+
+        //Action - collect
+        val data = rdd6.collect()
+        data.foreach(f=>{
+        println("Key:"+ f._1 +", Value:"+f._2)
+        })
+
+        //Action - saveAsTextFile
+        rdd5.saveAsTextFile("c:/tmp/wordCount")
     }
 }
