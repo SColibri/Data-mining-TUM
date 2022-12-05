@@ -201,23 +201,25 @@ The output when running a hadoop job can be pretty long and it depends on how yo
 
 
 ```
+
 Now we read the output file from hdfs.
 ```bash
+>> hadoop fs -cat /home/ubuntu/out/primeNumbers.out/part-m-00001 | wc -l
 
+# Output
+>> 50847534
 ```
 
 
 #### Wordcount using hadoop
 ```bash
 >> hadoop jar wordcount.jar com.wordcount.App
-
-
 ```
 
 Now we sort the file using ```sort``` and see the word ranking.
 
 ```bash
-
+>> hadoop fs -cat /home/ubuntu/out/primeNumbers.out/part-m-00001 | sort -k2
 ```
 
 ### Known issues
@@ -229,6 +231,24 @@ Now we sort the file using ```sort``` and see the word ranking.
 |hadoop does not connect to the datanodes|etc/hosts d|
 ## Scala 2.12
 
+### SBT scala version
+
+```java
+scalaVersion := "2.12.3"
+```
+
+### SBT imports
+
+```java
+libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "3.3.4"
+libraryDependencies += "org.apache.hadoop" % "hadoop-core" % "1.2.0"
+```
+
+### Source Codes
+- [Prime numbers](https://github.com/SColibri/Data-mining-TUM/tree/master/Task_3/Hadoop/Scala/prime)
+- [Wordcount](https://github.com/SColibri/Data-mining-TUM/tree/master/Task_3/Hadoop/Scala/wordcount)
+
+### Errors
 
 
 ## Python
@@ -237,8 +257,76 @@ Now we sort the file using ```sort``` and see the word ranking.
 # Spark 3.3.1
 ## Java
 
+### Maven imports
+
+Include the following in the dependecies section:
+```xml
+<dependencies>
+	<dependency>
+		<groupId>org.apache.spark</groupId>
+		<artifactId>spark-core_2.10</artifactId>
+		<version>1.2.0</version>
+	</dependency>
+
+	<!-- https://mvnrepository.com/artifact/org.apache.spark/spark-sql -->
+	<dependency>
+		<groupId>org.apache.spark</groupId>
+		<artifactId>spark-sql_2.13</artifactId>
+		<version>3.3.1</version>
+		<scope>provided</scope>
+	</dependency>
+</dependencies>
+```
+
+### Maven compile
+``` bash
+>> mvn clean install
+```
+
+### Spark run command
+
+```bash
+>> spark-submit --deploy-mode client <Filename>.jar
+```
+
+If the jar file has more than one main method, you have to specify the main class
+```bash
+>> spark-submit --deploy-mode client <Filename>.jar <class name>
+```
+
+### Source Codes
+- [Prime Numbers](https://github.com/SColibri/Data-mining-TUM/tree/master/Task_3/Spark/Java/prime)
+- [WordCount](https://github.com/SColibri/Data-mining-TUM/tree/master/Task_3/Spark/Java/wordcount/wordcount)
 
 ## Scala 2.12
+### SBT scala version
+
+```java
+scalaVersion := "2.12.3"
+```
+
+### SBT imports
+
+```java
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.1"
+libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.1"
+```
+
+### Spark run command
+This is similar to running a java packaged jar file.
+
+```bash
+>> spark-submit --deploy-mode client <Filename>.jar
+```
+
+If the jar file has more than one main method, you have to specify the main class
+```bash
+>> spark-submit --deploy-mode client <Filename>.jar <class name>
+```
+
+### Source codes
+- [Prime numbers](https://github.com/SColibri/Data-mining-TUM/tree/master/Task_3/Spark/Scala/prime)
+- [WordCount](https://github.com/SColibri/Data-mining-TUM/tree/master/Task_3/Spark/Scala/wordcount)
 
 ### Maven dependency
 
@@ -252,7 +340,6 @@ Now we sort the file using ```sort``` and see the word ranking.
 ```
 
 ## Python
-
 
 # Troubleshooting
 
@@ -301,6 +388,7 @@ For compiling scala code using maven, you can use the following plugin:
 	<configuration>
 		<useFile>false</useFile>
 		<disableXmlReport>true</disableXmlReport>
+
 		<!-- If you have classpath issue like NoDefClassError,... -->
 		<!-- useManifestOnlyJar>false</useManifestOnlyJar -->
 		<includes>
@@ -355,3 +443,18 @@ And include the scala dependency:
 ```
 
 By adding these three objects you will be able to manage your scala project using maven!
+
+## Scala SBT
+sbt is a build tool for Scala, Java, and more. It requires Java 1.8 or later.
+
+### Installation
+For installing sbt you can follow the follwing [guide](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html). The guide also offers a solution for installing scala using cs powered by Coursier! 
+
+### SBT compile
+
+Compile and create jar files by calling the package command.
+
+```bash
+>> sbt compile package
+```
+
