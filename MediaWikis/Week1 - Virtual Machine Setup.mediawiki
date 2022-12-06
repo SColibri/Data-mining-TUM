@@ -1,0 +1,107 @@
+<span id="task-1"></span>
+= Task 1 =
+
+<span id="objectives"></span>
+== Objectives ==
+
+* ☐ Create small cluster with 3 virtual machines (1 Master -&gt; 2 slaves like old times)
+* ☐ Install hadoop
+* ☐ Config automation using ansible (optional ?)
+* ☐ Write report on wiki
+
+<span id="creating-virtual-machines"></span>
+= Creating virtual machines =
+
+First step is to create all instances, for this we follow the instructions from [https://doku.lrz.de/display/PUBLIC/Create+a+VM here]. We create 3 instances with the same setup for this example: - Ubuntu LTS - Python 3.8 - lrz.small - Non-Internet node
+
+<blockquote>'''Note! :''' When adding SSH to the security group, in the '''Remote''' dropdown menu select '''Security Group'''
+</blockquote>
+[[File:Instances-Setup.png|Instances]]''This is how the instance tab should look like''
+
+<span id="configure-master-node"></span>
+== Configure master node ==
+
+<span id="installing-some-features"></span>
+=== installing some features ===
+
+First make sure you have updated apt package manager
+
+<pre>
+sudo apt update
+</pre>
+Install the following packages using the apt package manager: - Java - Yarn
+
+<pre>
+sudo apt install openjdk-8-jdk openjdk-8-jre
+sudo apt install yarn
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+</pre>
+Note: You have to install java and hadoop on all nodes.
+
+<span id="configure-hadoop"></span>
+=== Configure hadoop ===
+
+All configurations can be found [https://www.linode.com/docs/guides/how-to-install-and-set-up-hadoop-cluster/ here!].
+
+After configuring hadoop, copy all configuration files using
+
+<pre>
+scp -i <ssh key> ~/hadoop/etc/hadoop/* <IP slave>:hadoop/etc/hadoop/
+</pre>
+Run configuration with the following command:
+
+<pre>
+hdfs namenode -format
+</pre>
+<span id="run-hadoop"></span>
+=== Run hadoop ===
+
+You can initialize hadoop by executing the start-dfs.sh file. Because my ssh key configuration in hadoop is wrong I get the following error:
+
+<pre>
+Starting namenodes on [node-master]
+node-master: ssh: Could not resolve hostname node-master: Temporary failure in name resolution
+Starting datanodes
+-i: Warning: Identity file -- not accessible: No such file or directory.
+-i: ssh: Could not resolve hostname /home/ubuntu/hadoop/bin/hdfs: Name or service not known
+sed: -e expression #1, char 13: unknown option to `s'
+sed: -e expression #1, char 13: unknown option to `s'
+-i: Warning: Identity file -- not accessible: No such file or directory.
+sed: -e expression #1, char 13: unknown option to `s'
+-i: Warning: Identity file -- not accessible: No such file or directory.
+-i: ssh: Could not resolve hostname /home/ubuntu/hadoop/bin/hdfs: Name or service not known
+-i: ssh: Could not resolve hostname /home/ubuntu/hadoop/bin/hdfs: Name or service not known
+localhost: ubuntu@localhost: Permission denied (publickey).
+10.195.7.66: ubuntu@10.195.7.66: Permission denied (publickey).
+10.195.4.218: ubuntu@10.195.4.218: Permission denied (publickey).
+Starting secondary namenodes [master]
+master: ubuntu@master: Permission denied (publickey).
+</pre>
+<span id="installing-hadoop-filesystem"></span>
+= Installing Hadoop filesystem =
+
+A complete tutorial for setting up a cluster with three nodes can be found [https://www.linode.com/docs/guides/how-to-install-and-set-up-hadoop-cluster/ here!].
+
+To install hadoop on the master node on the master node we run the following commands:
+
+<pre>
+wget http://apache.cs.utah.edu/hadoop/common/current/hadoop-3.3.4.tar.gz
+tar -xzf hadoop-3.3.4.tar.gz
+mv hadoop-3.3.4 hadoop
+</pre>
+<span id="warning-installation-can-take-some-time"></span>
+== Warning: installation can take some time ==
+
+[[File:Installing_hadoop.png|thumb|none|alt=hadoop|hadoop]]
+
+<span id="add-hadoop-to-path"></span>
+== Add hadoop to PATH ==
+
+Add hadoop to PATH in .bashrc file by adding the following commands:
+
+<pre>
+#Add hadoop to PATH
+export HADOOP_HOME=${HOME}/hadoop
+export PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+</pre>
