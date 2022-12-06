@@ -1,0 +1,349 @@
+<span id="overview-of-guides"></span>
+= Overview of guides =
+
+<span id="official-documetnation"></span>
+== [https://spark.apache.org/docs/latest/running-on-yarn.html Official documetnation] ==
+
+<span id="spark-installation-on-ubuntu"></span>
+== [https://sparkbyexamples.com/spark/spark-installation-on-linux-ubuntu/ Spark Installation on Ubuntu] ==
+
+<span id="spark-setup-on-yarn-cluster"></span>
+== [https://sparkbyexamples.com/spark/spark-setup-on-hadoop-yarn/ Spark setup on Yarn Cluster] ==
+
+<span id="preqrequisites"></span>
+= Preqrequisites: =
+
+* ☐ Install Hadoop
+* ☐ Install Yarn
+
+<span id="configure-yarn"></span>
+= Configure yarn =
+
+On <code>yarn-site.xml</code> file, configure default node manager memory, yarn scheduler minimum, and maximum memory configurations.
+<details>
+<pre>
+<property>
+    <name>yarn.nodemanager.resource.memory-mb</name>
+    <value>1536</value>
+</property>
+<property>
+    <name>yarn.scheduler.maximum-allocation-mb</name>
+    <value>1536</value>
+</property>
+<property>
+    <name>yarn.scheduler.minimum-allocation-mb</name>
+    <value>128</value>
+</property>
+<property>
+    <name>yarn.nodemanager.vmem-check-enabled</name>
+    <value>false</value>
+</property>
+</pre>
+</details>
+Configure <code>mapred-site.xml</code> file
+<details>
+<pre>
+<property>
+    <name>yarn.app.mapreduce.am.resource.mb</name>
+    <value>512</value>
+</property>
+<property>
+    <name>mapreduce.map.memory.mb</name>
+    <value>256</value>
+</property>
+<property>
+    <name>mapreduce.reduce.memory.mb</name>
+    <value>256</value>
+</property>
+<property>
+    <name>yarn.app.mapreduce.am.env</name>
+    <value>HADOOP_MAPRED_HOME=$HADOOP_MAPRED_HOME</value>
+</property>
+<property>
+    <name>mapreduce.map.env</name>
+    <value>HADOOP_MAPRED_HOME=$HADOOP_MAPRED_HOME</value>
+</property>
+<property>
+    <name>mapreduce.reduce.env</name>
+    <value>HADOOP_MAPRED_HOME=$HADOOP_MAPRED_HOME</value>
+</property>
+</pre>
+</details>
+<span id="install-spark"></span>
+= Install Spark =
+
+<blockquote>'''Note:''' Using [https://sparkbyexamples.com/spark/spark-setup-on-hadoop-yarn/ this tutorial]
+</blockquote>
+Running Spark on YARN requires a binary distribution of Spark, which can be downloaded [https://spark.apache.org/downloads.html here]
+
+Or run these commands:
+
+<pre>
+# Download Apache spark latest Version
+wget http://apache.claz.org/spark/spark-2.4.0/spark-2.4.0-bin-hadoop2.7.tgz
+
+#Unzip files and rename to spark
+tar -xzf spark-2.4.0-bin-hadoop2.7.tgz
+mv spark-2.4.0-bin-hadoop2.7 spark
+
+#Add spark environment variables to .bashrc or .profile file
+vi ~/.bashrc
+
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export SPARK_HOME=/home/ubuntu/spark
+export PATH=$PATH:$SPARK_HOME/bin
+export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
+
+#load env variables to the opened session by running following command
+source ~/.bashrc
+
+#Edit $SPARK_HOME/conf/spark-defaults.conf and set spark.master to yarn
+spark.master yarn
+spark.driver.memory 512m
+spark.yarn.am.memory 512m
+spark.executor.memory 512m
+
+</pre>
+To test the installation you can run the sample spark job:
+
+<pre>
+spark-submit --deploy-mode client --class org.apache.spark.examples.SparkPi $SPARK_HOME/examples/jars/spark-examples_2.12-3.3.1.jar 10
+</pre>
+<span id="launching-spark-on-yarn"></span>
+== Launching Spark on YARN ==
+
+To launch a Spark application in cluster mode:
+
+<pre>$ ./bin/spark-submit --class path.to.your.Class --master yarn --deploy-mode cluster [options] &lt;app jar&gt; [app options]</pre>
+<details>
+<summary>
+Example
+</summary>
+<pre>
+$ ./bin/spark-submit --class org.apache.spark.examples.SparkPi \
+--master yarn \
+--deploy-mode cluster \
+--driver-memory 4g \
+--executor-memory 2g \
+--executor-cores 1 \
+--queue thequeue \
+examples/jars/spark-examples*.jar \
+10
+</pre>
+</details>
+To launch a Spark application in '''client''' mode replace <code>--deploy-mode cluster</code> with <code>--deploy-mode client</code> and vice versa
+
+<span id="adding-other-jars"></span>
+== Adding Other JARs ==
+
+<blockquote>In cluster mode, the driver runs on a different machine than the client, so SparkContext.addJar won’t work out of the box with files that are local to the client. To make files on the client available to SparkContext.addJar, include them with the –jars option in the launch command.
+</blockquote>
+<pre>
+$ ./bin/spark-submit --class my.main.Class \
+    --master yarn \
+    --deploy-mode cluster \
+    --jars my-other-jar.jar,my-other-other-jar.jar \
+    my-main-jar.jar \
+    app_arg1 app_arg2
+</pre>
+<span id="example-code-for-calculating-primes"></span>
+= Example code for calculating primes =
+
+The bellow example for calculating primes was found from this [https://www.jofre.de/?p=1466 article]
+
+<pre>
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.SparkSession;
+import scala.Tuple2;
+ 
+public class Main {
+ 
+  private static boolean isPrime(long n) {
+    for (long i = 2; 2 * i < n; i++) {
+      if (n % i == 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+ 
+  public static void main(String[] args) {
+    SparkSession spark = SparkSession.builder().appName("PrimeApp").getOrCreate();
+    Dataset<Tuple2<Long, Boolean>> rnd = spark.range(0L, 1000000L).map(
+      (MapFunction<Long, Tuple2<Long, Boolean>>) x -> new Tuple2<Long, Boolean>(x, isPrime(x)), Encoders.tuple(Encoders.LONG(), Encoders.BOOLEAN()));
+    rnd.show(false);
+    spark.stop();
+  }
+ 
+}
+</pre>
+The above code checks if a number n is divisible by any number from 2 up to <math display="inline">`\frac{n}{2}`</math>. If it is not, then it’s a prime number.
+
+For this week’s tasks we also save the 50th to 100th prime. For this we can use bash commands on the file containing the primes:
+
+<pre>
+# sort numbers from a file
+-cat 'filename' | sort -n
+
+#  sort and get 50th to 100th number
+-cat 'filename' | sort -n | sed -n '50,100p'
+</pre>
+<span id="creating-jar-files-that-can-run-with-spark"></span>
+= Creating JAR files that can run with spark =
+
+In order to have the jave files be compiled from the proper Java runtime version and to avoid other problems, it’s easier to use maven to generate the project.
+
+<span id="installation"></span>
+== Installation ==
+
+To install maven run:
+
+<code>sudo apt install maven</code>
+
+<span id="creating-a-project"></span>
+== Creating a project ==
+
+To create a project directory run:
+
+<code>mvn archetype:generate -DgroupId=org -DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4 -DinteractiveMode=false</code>
+
+{|
+!width="50%"| option
+!width="50%"| meaning
+|-
+| -DgroupId
+| sets the folder structure after <code>src/main/java</code>. Folder structure will be <code>src/main/java/[DgroupId]/App.java</code>
+|-
+| -DartifactId
+| sets the name of the containing folder which has <code>src</code> and <code>pom.xml</code>
+|}
+
+
+-----
+
+After the project has been created we have to edit the <code>pom.xml</code> file. After <code>&lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;</code> add the following:
+
+<pre>
+<build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</pre>
+Next in the dependencies tag add all desired imports like hadoop, spark etc.
+
+<pre>
+<dependencies>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.12</artifactId>
+            <version>3.3.1</version>
+        </dependency>
+        ...
+        <dependency>...</dependency>
+    </dependencies>
+</pre>
+
+-----
+
+Finally you can write your java code and when the program is ready to be compiled run:<code>mvn package</code> or <code>mvn install</code>.
+
+To run a spark-submit job: <code>spark-submit --class {-DgroupId}.{-DartifactId}.App target/{*}.jar</code>
+
+Where: * <code>{-DgroupId}</code> is the provided <code>-DgroupId</code> option when making the maven project. * <code>{-DartifactId}</code> is the provided <code>-DartifactId</code> option when making the maven project. * <code>*.jar</code> is the name of the jar file within <code>target/</code>. It should containg just one jar file with the name you chose for the application
+
+<span id="guides"></span>
+= Guides =
+
+<span id="creating-maven-project"></span>
+=== [https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html Creating maven project] ===
+
+<span id="example-code-for-generating-primes"></span>
+= Example code for generating primes =
+
+<span id="java-and-hadoop"></span>
+== Java and Hadoop ==
+
+<pre>
+import java.io.IOException;
+import java.io.File;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import org.apache.hadoop.fs.*;
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.util.*;
+
+// Java program to display Prime numbers till N
+class PrimeNumber
+{
+      //function to check if a given number is prime
+     static boolean isPrime(int n){
+          //since 0 and 1 is not prime return false.
+          if(n==1||n==0)return false;
+
+          //Run a loop from 2 to n-1
+          for(int i=2; i<n; i++){
+            // if the number is divisible by i, then n is not a prime number.
+                if(n%i==0)return false;
+          }
+          //otherwise, n is prime number.
+          return true;
+    }
+    // Driver code
+    public static void main (String[] args)
+    {
+        int N = 100;
+        //check for every number from 1 to N
+        try {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(args[0]));
+        for(int i=1; i<=N; i++){
+            //check if current number is prime
+            if(isPrime(i)) {
+                System.out.print(i + " ");
+                writer.write(String.valueOf(i) + "\n");
+            }
+        }
+        writer.close();
+</pre>
+<span id="java-and-spark"></span>
+== Java and Spark ==
+
+<pre>
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.SparkSession;
+import scala.Tuple2;
+ 
+public class Main {
+ 
+  private static boolean isPrime(long n) {
+    for (long i = 2; 2 * i < n; i++) {
+      if (n % i == 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+ 
+  public static void main(String[] args) {
+    SparkSession spark = SparkSession.builder().appName("PrimeApp").getOrCreate();
+    Dataset<Tuple2<Long, Boolean>> rnd = spark.range(0L, 1000000L).map(
+      (MapFunction<Long, Tuple2<Long, Boolean>>) x -> new Tuple2<Long, Boolean>(x, isPrime(x)), Encoders.tuple(Encoders.LONG(), Encoders.BOOLEAN()));
+    rnd.show(false);
+    spark.stop();
+  }
+ 
+}
+</pre>

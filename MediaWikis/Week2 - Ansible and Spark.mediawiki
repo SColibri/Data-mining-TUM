@@ -1,0 +1,443 @@
+<span id="tasks"></span>
+= '''Tasks''' =
+
+* ☐ Install Hadoop using Ansible
+* ☐ Install Spark on cluster
+* ☐ Use Spark to calculate all primes from 1 to 10^9
+* ☐ Download the whole English section of Wikipedia ( ~250GB )
+
+<span id="ansible"></span>
+= Ansible =
+
+A simplified tutorial for lrz can be found [https://doku.lrz.de/download/attachments/107348029/20220422_Introduction_to_LRZ_CC.pdf?version=1&modificationDate=1650625323573&api=v2 here], but this is not that helpful.
+
+Books: - [https://pepa.holla.cz/wp-content/uploads/2016/12/Ansible.pdf Ansible begin]
+
+Video tutorials: - [https://www.youtube.com/watch?v=IkU72MFzbi4 Video_01]
+
+<span id="creating-a-heat-file"></span>
+== Creating a heat file ==
+
+<span id="loading-heat-files"></span>
+== Loading Heat files ==
+
+To load heat files go to <code>Orchestration &gt; Stacks</code> [[File:uploads/8a128ee528c0d70cc04ac620fa4d14ae/image.png|image]]
+
+Click on Launch stack and upload the heat file to execute: [[File:uploads/d25a9cdfc9d9dd20bfaad19042237fa3/image.png|image]]
+
+<span id="ansible-on-lrz"></span>
+= Ansible on lrz =
+
+Lrz uses heat orchestration for handling all network structuring needs, you can find a full guide on Ansible [https://doku.lrz.de/display/PUBLIC/Heat+Orchestration here] and also some examples [https://docs.openstack.org/heat/queens/template_guide here]. A simplified version that explains specific implementations for our personal purposes can be found on this wiki.
+
+<span id="create-instance"></span>
+= Create instance =
+
+To create a new instance it is necessary to manually create a volume beforehand and after creating the volume we can then create a new instance:
+
+<span id="create-heat-file-.yml"></span>
+== Create Heat file .yml ==
+
+Here we use the example from [https://doku.lrz.de/display/PUBLIC/Heat+Orchestration lrz] and take it apart
+
+<span id="header"></span>
+==== Header ====
+
+The header of the file should always define the template version
+
+<pre>
+heat_template_version: queens
+description: Launch a server
+</pre>
+<span id="create-new-volume"></span>
+==== Create new volume ====
+
+Here we create a new volume using an ubuntu image
+
+<pre>
+resources:
+  volume:
+    type: OS::Cinder::Volume
+    properties:
+      name: Master_Volume # Name of volume
+      image: Ubuntu-20.04-LTS-focal # Image name
+      size: 20 # Volume size
+</pre>
+<span id="create-new-instance"></span>
+==== Create new instance ====
+
+Now we create a new instancce as follows
+
+<pre>
+  server:
+    type: OS::Nova::Server
+    depends_on: volume
+    properties:
+      name: master_node # Instance name
+      flavor: lrz.small # Instance size
+      key_name: UbuntuKey # ssh key name
+      block_device_mapping_v2:
+        - volume_id: { get_resource: volume } # refers to the previous created volume
+      networks:
+        - network: MWN # network type we can also use internet
+</pre>
+<span id="use-yaml-variables-for-defining-parameters"></span>
+==== Use yaml variables for defining parameters ====
+
+You can set variables in yaml as follows (more bout yaml [https://www.javatpoint.com/yaml-data-types data types]):
+
+<pre>
+parameters: # set parameter list
+  var_name: # Variable name (set any name here)
+    type: string # Variable data type 
+    default: myserver # value, if default valuse is not set, the webUI will prompt the user for it
+</pre>
+and for calling a parameter you would set it with:
+
+<pre>
+    property_to_set: { get_param: var_name }
+</pre>
+<span id="also-read"></span>
+
+<span id="ansible-attach-floating-ip"></span>
+= Ansible attach floating IP =
+
+<span id="floating-point-section"></span>
+== Floating Point section ==
+
+For ease of use we first add a parameter list in our file and add the network variable:
+
+<pre>
+parameters:
+  network:
+    type: string
+    default: MWN
+</pre>
+<span id="create-floating-ip"></span>
+=== Create floating IP ===
+
+To create a floating IP we use the command:
+
+<pre>
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { list_join: ['', [{ get_param: network }, '_pool']] }
+</pre>
+<span id="associate-the-floating-point"></span>
+=== Associate the floating point ===
+
+The following code associates the floating IP
+
+<pre>
+  floating_ip_association:
+    type: OS::Neutron::FloatingIPAssociation
+    depends_on:
+      - server
+      - floating_ip
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id: { get_attr: [server, addresses, { get_param: network }, 0, port] }
+</pre>
+<span id="also-read-1"></span>
+
+<span id="deploy-software-configuration"></span>
+= Deploy software configuration =
+
+<span id="create-resource-using-osheatsoftwareconfig"></span>
+== Create resource using OS::HEAT::SoftwareConfig ==
+
+Install using bash code, the following code is an example for installing java 8:
+
+<pre>
+# dependencies installation
+java_install:
+    type: OS::Heat::SoftwareConfig
+    properties:
+        group: ungrouped
+        config: |
+        #!/usr/bin/bash
+        sudo apt -y update
+        sudo apt -y install openjdk-8-jdk openjdk-8-jre
+</pre>
+<span id="run-configurations-using-osheatmultiparmime"></span>
+== Run configurations using OS::HEAT::MultiparMime ==
+
+You can use the OS::HEAT::MultiparMime for running multiple commands in one instruction set, example:
+
+<pre>
+m_server_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+      - config: {get_resource: java_install}
+      - config: {get_resource: other1_install}
+      - config: {get_resource: Other2_install}
+</pre>
+<span id="spark---general"></span>
+= Spark - General =
+
+<details>
+<summary>
+Supported Languages
+</summary>
+'''Supported languages''' * Python :
+
+<pre>pip install pyspark
+pyspark</pre>
+<pre>
+df = spark.read.json("logs.json")
+df.where("age > 21").select("name.first").show()
+</pre>
+* SQL :
+
+<pre>$ docker run -it --rm apache/spark /opt/spark/bin/spark-sql
+
+spark-sql&gt;</pre>
+<pre>
+SELECT
+  name.first AS first_name,
+  name.last AS last_name,
+  age
+FROM json.`logs.json`
+  WHERE age > 21;
+</pre>
+* Scala :
+
+<pre>$ docker run -it --rm apache/spark /opt/spark/bin/spark-shell
+
+scala&gt;</pre>
+<pre>
+val df = spark.read.json("logs.json")
+df.where("age > 21")
+  .select("name.first").show()
+</pre>
+* Java
+
+<pre>
+Dataset df = spark.read().json("logs.json");
+df.where("age > 21")
+  .select("name.first").show();
+</pre>
+* R
+
+<pre>
+df <- read.json(path = "logs.json")
+df <- filter(df, df$age > 21)
+head(select(df, df$name.first))
+</pre>
+</details>
+[https://spark.apache.org/docs/latest/cluster-overview.html '''Spark cluster mode overview''']
+
+[https://spark.apache.org/docs/latest/running-on-yarn.html '''Launching on a cluster: Hadoop YARN''']
+
+<span id="cluster-mode-overview"></span>
+= Cluster Mode Overview =
+
+[[File:https://spark.apache.org/docs/latest/img/cluster-overview.png|thumb|none|alt=cluster mode image|cluster mode image]]
+
+<blockquote>Specifically, to run on a cluster, the SparkContext can connect to several types of cluster managers (either Spark’s own standalone cluster manager, Mesos, YARN or Kubernetes), which allocate resources across applications.
+</blockquote>
+<span id="supported-cluster-managers"></span>
+== Supported cluster managers ==
+
+* [https://spark.apache.org/docs/latest/running-on-yarn.html Hadoop YARN] Resource manager for Hadoop 2 and 3
+* [https://spark.apache.org/docs/latest/running-on-mesos.html Apache Mesos (Deprecated)] General cluster manager that can also run Hadoop MapReduce
+
+<span id="application-submission-guide"></span>
+== Application Submission [https://spark.apache.org/docs/latest/submitting-applications.html guide] ==
+
+<span id="monitoring-guide"></span>
+== Monitoring [https://spark.apache.org/docs/latest/monitoring.html guide] ==
+
+Each driver program has a web UI, typically on port 4040. <code>http://&lt;diver-node&gt;:4040</code>
+
+<span id="job-scheduling-guide"></span>
+== Job Scheduling [https://spark.apache.org/docs/latest/job-scheduling.html guide] ==
+
+<span id="glossary"></span>
+== Glossary ==
+
+{|
+!width="50%"| Term
+!width="50%"| Meaning
+|-
+| Application
+| User program built on Spark. Consists of ''driver program'' and ''executors'' on the cluster
+|-
+| Application jar
+| A jar containing the user’s Spark application. In some cases users will want to create an “uber jar” containing their application along with its dependencies. The user’s jar should never include Hadoop or Spark libraries, however, these will be added at runtime.
+|-
+| Driver Program
+| The process running the ''main()'' function of the application and creating the SparkContext
+|-
+| Cluster Manager
+| An external service for acquiring resources on the cluster (e.g. standalone manager, Mesos, YARN, Kubernetes)
+|-
+| Deploy mode
+| Distingquishes where the driver process runs: '''cluster''' mode launches the driver inside of the cluster, '''clinet''' mode launches the driver outside of the cluster
+|-
+| Worker node
+| Any node that can run application code insidet he cluster
+|-
+| Executor
+| A process launched for an application on a worker node that runs tasks and keeps data in memory or disk storage across them. Each application has it’s own executors
+|-
+| Task
+| Unit of work sent to one executor
+|-
+| Job
+| A parallel computation of multiple tasks that gets spawned from a Spark action ( ''save'', ''collect'' )
+|-
+| Stage
+| Each Job get’s divided into a smaller section of tasks
+|}
+
+<span id="overview-of-guides"></span>
+= Overview of guides =
+
+<span id="official-documetnation"></span>
+== [https://spark.apache.org/docs/latest/running-on-yarn.html Official documetnation] ==
+
+<span id="spark-installation-on-ubuntu"></span>
+== [https://sparkbyexamples.com/spark/spark-installation-on-linux-ubuntu/ Spark Installation on Ubuntu] ==
+
+<span id="spark-setup-on-yarn-cluster"></span>
+== [https://sparkbyexamples.com/spark/spark-setup-on-hadoop-yarn/ Spark setup on Yarn Cluster] ==
+
+<span id="preqrequisites"></span>
+=== Preqrequisites: ===
+
+* ☐ Install Hadoop
+* ☐ Install Yarn
+
+<span id="configure-yarn"></span>
+=== Configure yarn ===
+
+On <code>yarn-site.xml</code> file, configure default node manager memory, yarn scheduler minimum, and maximum memory configurations.
+<details>
+<pre>
+<property>
+    <name>yarn.nodemanager.resource.memory-mb</name>
+    <value>1536</value>
+</property>
+<property>
+    <name>yarn.scheduler.maximum-allocation-mb</name>
+    <value>1536</value>
+</property>
+<property>
+    <name>yarn.scheduler.minimum-allocation-mb</name>
+    <value>128</value>
+</property>
+<property>
+    <name>yarn.nodemanager.vmem-check-enabled</name>
+    <value>false</value>
+</property>
+</pre>
+</details>
+Configure <code>mapred-site.xml</code> file
+<details>
+<pre>
+<property>
+    <name>yarn.app.mapreduce.am.resource.mb</name>
+    <value>512</value>
+</property>
+<property>
+    <name>mapreduce.map.memory.mb</name>
+    <value>256</value>
+</property>
+<property>
+    <name>mapreduce.reduce.memory.mb</name>
+    <value>256</value>
+</property>
+<property>
+    <name>yarn.app.mapreduce.am.env</name>
+    <value>HADOOP_MAPRED_HOME=$HADOOP_MAPRED_HOME</value>
+</property>
+<property>
+    <name>mapreduce.map.env</name>
+    <value>HADOOP_MAPRED_HOME=$HADOOP_MAPRED_HOME</value>
+</property>
+<property>
+    <name>mapreduce.reduce.env</name>
+    <value>HADOOP_MAPRED_HOME=$HADOOP_MAPRED_HOME</value>
+</property>
+</pre>
+</details>
+<span id="install-spark"></span>
+=== Install Spark ===
+
+<blockquote>'''Note:''' Using [https://sparkbyexamples.com/spark/spark-setup-on-hadoop-yarn/ this tutorial]
+</blockquote>
+Running Spark on YARN requires a binary distribution of Spark, which can be downloaded [https://spark.apache.org/downloads.html here]
+
+Or run these commands:
+
+<pre>
+# Download Apache spark latest Version
+wget http://apache.claz.org/spark/spark-2.4.0/spark-2.4.0-bin-hadoop2.7.tgz
+
+#Unzip files and rename to spark
+tar -xzf spark-2.4.0-bin-hadoop2.7.tgz
+mv spark-2.4.0-bin-hadoop2.7 spark
+
+#Add spark environment variables to .bashrc or .profile file
+vi ~/.bashrc
+
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export SPARK_HOME=/home/ubuntu/spark
+export PATH=$PATH:$SPARK_HOME/bin
+export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
+
+#load env variables to the opened session by running following command
+source ~/.bashrc
+
+#Edit $SPARK_HOME/conf/spark-defaults.conf and set spark.master to yarn
+spark.master yarn
+spark.driver.memory 512m
+spark.yarn.am.memory 512m
+spark.executor.memory 512m
+
+</pre>
+To test the installation you can run the sample spark job:
+
+<pre>
+spark-submit --deploy-mode client --class org.apache.spark.examples.SparkPi $SPARK_HOME/examples/jars/spark-examples_2.12-3.3.1.jar 10
+</pre>
+<span id="launching-spark-on-yarn"></span>
+=== Launching Spark on YARN ===
+
+To launch a Spark application in cluster mode:
+
+<pre>$ ./bin/spark-submit --class path.to.your.Class --master yarn --deploy-mode cluster [options] &lt;app jar&gt; [app options]</pre>
+<details>
+<summary>
+Example
+</summary>
+<pre>
+$ ./bin/spark-submit --class org.apache.spark.examples.SparkPi \
+--master yarn \
+--deploy-mode cluster \
+--driver-memory 4g \
+--executor-memory 2g \
+--executor-cores 1 \
+--queue thequeue \
+examples/jars/spark-examples*.jar \
+10
+</pre>
+</details>
+To launch a Spark application in '''client''' mode replace <code>--deploy-mode cluster</code> with <code>--deploy-mode client</code> and vice versa
+
+<span id="adding-other-jars"></span>
+=== Adding Other JARs ===
+
+<blockquote>In cluster mode, the driver runs on a different machine than the client, so SparkContext.addJar won’t work out of the box with files that are local to the client. To make files on the client available to SparkContext.addJar, include them with the –jars option in the launch command.
+</blockquote>
+<pre>
+$ ./bin/spark-submit --class my.main.Class \
+    --master yarn \
+    --deploy-mode cluster \
+    --jars my-other-jar.jar,my-other-other-jar.jar \
+    my-main-jar.jar \
+    app_arg1 app_arg2
+</pre>
