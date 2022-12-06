@@ -1,97 +1,69 @@
-package com.prime
-import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.util.Progressable;
-import javax.naming.Context
-
-class PrimesMap extends Mapper[LongWritable, Text, Text, IntWritable]
-{
-	final var nw = new Text
-
-	@throws[IOException]
-	override def map(key: LongWritable, value: Text, context:Mapper[LongWritable,Text,Text,IntWritable]#Context) = {
-		var number = Integer.parseInt(value.toString());
-		if(isPrime(number)) {
-			context.write(nw, new IntWritable(number));
-		}
-	}
-
-	// Check if number is prime
-	def isPrime(number: Double) : Boolean =
-	{	
-		if (number == 1) {
-			return false;
-		}
-		if (number % 2 == 0 && number != 2 || number % 3 == 0 && number != 3) {
-			return false;
-		}
-
-		val limit = ((Math.pow(number, 0.5) + 1) / 6.0 + 1).toInt;
-
-		for (i <- 0 until limit) {
-			if(number % (6 * i - 1) == 0){
-				return false;
-			}
-			if(number % (6 * i + 1) == 0){
-				return false;
-			}
-		}
-		System.console().writer().println(number);
-		return true;
-	}
-}
-
+import java.io.IOException
+import java.util._
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf._
+import org.apache.hadoop.io._
+import org.apache.hadoop.mapred._
+import org.apache.hadoop.util._
 
 object App
 {
-	def main(args: Array[String]) : Unit =
+	class Map extends MapReduceBase with Mapper[LongWritable, Text, Text, IntWritable] 
 	{
-		// -----------------------------------------------
-		// 					FILE PATHS
-		// -----------------------------------------------
-		val primeNumbersSource = "/home/ubuntu/resources/primeNumbers.txt";
+		val one = new IntWritable(1)
+  		val word = new Text
+  
+		@throws[IOException]
+		def map(
+			key: LongWritable,
+			value: Text,
+			output: OutputCollector[Text, IntWritable],
+			reporter: Reporter): Unit = 
+			{
+				val line: String = value.toString
+				
+				line.split(" ").foreach 
+				{ 
+					token =>
+					word.set(token)
+					output.collect(word, one)
+				}
+			}
+	}
+
+	class Reduce extends MapReduceBase with Reducer[Text, IntWritable, Text, IntWritable] 
+	{
+		@throws[IOException]
+		def reduce(
+			key: Text,
+			values: Iterator[IntWritable],
+			output: OutputCollector[Text, IntWritable],
+			reporter: Reporter): Unit = 
+			{
+				//values.toList.foreach {value => if (value.get()>0) output.collect(key, value)}
+			}
+	}
+
+	@throws[Exception]
+	def main(args: Array[String]): Unit = {
+
 		val hadoopPrimeSource = "/home/ubuntu/input/primeNumbers.txt";
-		val hadoopPrimeOutput = "/home/ubuntu/out/primeNumbersScala.out";
-		val hadoopAddress = "hdfs://192.168.4.83:9000";
+    	val hadoopPrimeOutput = "/home/ubuntu/out/primeScalaHadoop.out";
 
-		// -----------------------------------------------
-		// 					JOB SETUP
-		// -----------------------------------------------
-
-		// create new hadoop configuration object
-		var conf = new Configuration();
-
-		// create new hadoop mapreduce job
-		val job = new Job(conf, "Primes");
-		job.setJarByClass(classOf[PrimesMap]);
-
-		job.setOutputKeyClass(classOf[Text]);
-		job.setOutputValueClass(classOf[IntWritable]);
-
-    	job.setMapperClass(classOf[PrimesMap]);
-
-		//job.setInputFormatClass(classOf[TextInputFormat]);
-		//job.setOutputFormatClass(classOf[TextOutputFormat[_, _]]);
-
-		FileInputFormat.addInputPath(job, new Path(hadoopPrimeSource));
-		FileOutputFormat.setOutputPath(job, new Path(hadoopPrimeOutput));
-
-		job.waitForCompletion(true)
-  	}
+		val conf: JobConf = new JobConf(this.getClass)
+		conf.setJobName("primesScalaHadoop")
+		conf.setOutputKeyClass(classOf[Text])
+		conf.setOutputValueClass(classOf[IntWritable])
+		conf.setMapperClass(classOf[Map])
+		conf.setCombinerClass(classOf[Reduce])
+		conf.setReducerClass(classOf[Reduce])
+		conf.setInputFormat(classOf[TextInputFormat])
+		conf.setOutputFormat(classOf[TextOutputFormat[Text, IntWritable]])
+		FileInputFormat.setInputPaths(conf, new Path(hadoopPrimeSource))
+		FileOutputFormat.setOutputPath(conf, new Path(hadoopPrimeOutput))
+		JobClient.runJob(conf)
+	}
 }
 
 
