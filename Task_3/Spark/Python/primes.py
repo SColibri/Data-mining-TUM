@@ -7,6 +7,7 @@ from pyspark.context import SparkContext
 from math import sqrt
 import os
 import sys
+import time
 
 os.environ['PYSPARK_PYTHON'] = sys.executable
 os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
@@ -50,19 +51,34 @@ spark = SparkSession.builder.appName("primes").enableHiveSupport().getOrCreate()
 
 	# create a new Spark Context object, which tells Spark how to access a cluster
 sc = SparkContext.getOrCreate()
-
+start = time.time()
 	# create an RDD of numbers from 0 to num
 x = 0
-y = 12345
-nums = sc.parallelize( range(x,y) )
-
-# Hard coded filepath
-hadoopPrimeSource = "/home/ubuntu/input/primeNumbers.txt";
-hadoopPrimeOutput = "/home/ubuntu/out/primeNumbersScalaSpark.out";
+y = 10**4
+nums = sc.parallelize( range (x,y) )
+nums = nums.filter(isprime)
+# nums = sc.parallelize( lambda x: for x in range(x,y): x if isprime(x) )
+par_time = time.time()
+# # Hard coded filepath
+# hadoopPrimeSource = "/home/ubuntu/input/primeNumbers.txt";
+# hadoopPrimeOutput = "/home/ubuntu/out/primeNumbersScalaSpark.out";
     
-# Get input
-input =  sc.textFile(hadoopPrimeSource)
+# # Get input
+# input =  sc.textFile(hadoopPrimeSource)
+# prime = nums.map(lambda x: (x,1) if (isprime(x)))
+print(type(nums))
+# rdd2=rdd.map(lambda x: (x,1))
+# for element in rdd2.collect():
+#     print(element)
 
+# prime = prime.collect()
 # compute and display the number of primes found
-print(nums)
-print ( "NUMBER OF PRIMES BELOW %d IS: %d" % (y, nums.filter( isprime ).count()) )
+print('What is this')
+# print(nums.collect())
+clt_time = time.time()
+# print('primes', prime.count())
+# print ( "NUMBER OF PRIMES BELOW %d IS: %d" % (y, nums.filter( isprime ).count()) )
+print ( "NUMBER OF PRIMES BELOW %d IS: %d" % (y, nums.count()) )
+final_time = time.time()
+print(nums.filter( isprime ).collect())
+print('Times:',par_time-start,clt_time-par_time,final_time-clt_time)

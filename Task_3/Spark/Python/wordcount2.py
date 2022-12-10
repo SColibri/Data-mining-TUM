@@ -20,8 +20,6 @@ from operator import add
 import os
 # import sys
 
-
-
 from pyspark.sql import SparkSession
 
 os.environ['PYSPARK_PYTHON'] = sys.executable
@@ -38,7 +36,8 @@ if __name__ == "__main__":
         .appName("PythonWordCount")\
         .getOrCreate()
 
-    lines = spark.read.text('/home/ubuntu/wiki/wiki.txt').rdd.map(lambda r: r[0])
+    lines = spark.read.text('/home/ubuntu/wiki/testText.txt').rdd.map(lambda r: r[0])
+    # lines = spark.read.text('/home/ubuntu/wiki/wiki.txt').rdd.map(lambda r: r[0])
     counts = lines.flatMap(lambda x: x.split(' ')) \
                   .map(lambda x: (x, 1)) \
                   .reduceByKey(add)
