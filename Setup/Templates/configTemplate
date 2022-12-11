@@ -1,0 +1,6 @@
+Host <name>
+  User <username>
+  HostName <ip>
+  IdentityFile ~/.ssh/privateKey
+  AddKeysToAgent yes
+
