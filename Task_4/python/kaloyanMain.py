@@ -33,7 +33,7 @@ batch_01 = batch()
 # y.start()
 
 print("---- batch 01 -----")
-x = threading.Thread(target=batch_01.load, args=(filename, 1E4, 2E4)) #100 values
+x = threading.Thread(target=batch_01.load, args=(filename, 0, 1E6)) #100 values
 x.start()
 
 x.join()
@@ -65,11 +65,9 @@ start = time.time()
 listOfCosSimilarities = list( map(metoidCos, vectorList) )
 sumAllCosSimilarities = sum(listOfCosSimilarities)
 end = time.time()
+
 # print("Cosine Similarities of vectors: ", listOfCosSimilarities)
 print("calculated ", len(batch_01.items), " embeddings")
 print("sum of cosine similarities of vectors: ", sumAllCosSimilarities)
 print("done in: ", end - start, "s")
-
-
-
 

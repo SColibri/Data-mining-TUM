@@ -35,10 +35,12 @@ class embeddingStructure():
         self.load_fromTag("OX")
         self.load_fromTag("GN")
         
-        self.data = np.tile(np.float32(0), len(arrValue) - 1)
+        self.data = np.tile(np.float32(0), len(arrValue) - tagIndex)
+
+        if (len(self.data) == 0):
+            stophere = 1
         for index in range(tagIndex, len(arrValue)):
-            self.data[index - 1] = float(arrValue[index])
-    
+            self.data[index - tagIndex] = float(arrValue[index])
     # Load data into specific tag items (optional process)
     def load_fromTag(self, tagName):
 

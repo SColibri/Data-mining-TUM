@@ -7,6 +7,8 @@ import pandas as pd
 from embeddingStructure import embeddingStructure
 from batch import batch
 
+import utils as group2
+
 format = "%(asctime)s: %(message)s"
 logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
 logging.info("Main    : Starting")
@@ -25,14 +27,16 @@ batch_01 = batch()
 batch_02 = batch()
 
 print("---- batch 02 -----")
-y = threading.Thread(target=batch_01.load, args=(filename, 1E5, 1.1E5))
+y = threading.Thread(target=batch_02.load, args=(filename, 1E5, 1.1E5))
 y.start()
 
 print("---- batch 01 -----")
-x = threading.Thread(target=batch_01.load, args=(filename, 1E4, 2E4))
+x = threading.Thread(target=batch_01.load, args=(filename, 1E4, 1.01E4)) #100 values
 x.start()
 
 x.join()
 y.join()
 
 logging.info("Main    : all done")
+print( len(batch_01.items))
+
