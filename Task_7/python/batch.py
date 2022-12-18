@@ -8,10 +8,10 @@ class batch():
     
     def load(self, filename, startLine, endLine):
         fileDB = open(filename, 'r')
-        limitSize = int(endLine - startLine)
+        limitSize = endLine - startLine
 
         # Initialize array
-        self.items = [embeddingStructure() for _ in range(limitSize + 1)]
+        self.items = [embeddingStructure() for _ in range(limitSize)]
         logging.info("batch    : starting section")
 
         # Skip to starting line
