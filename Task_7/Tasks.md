@@ -5,9 +5,9 @@
 - [x] Cosine distance for many points.
 - [ ] Develop strategy to create clusters.
     - [ ] Use PCA/LDA to determine how many clusters are really needed
-    - [ ] Create clusters method
+    - [x] Create clusters method
 - [ ] Numpy clusters
-- [ ] Verify cluster distances (compare after two iterations)
+- [x] Verify cluster distances (compare after two iterations)
 - [ ] Test cluster implementation and see how it scales out
 - [ ] Read and implement or install and try the Silhouette measure on your clusters
 - [ ] Try the clustering algorithms from MLlib 
