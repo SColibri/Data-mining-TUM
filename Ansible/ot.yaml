@@ -1,0 +1,58 @@
+- name: Create a new master node
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: Create a new master node
+    os_server:
+      cloud: openstack
+      state: present
+      name: master
+      image: Ubuntu 20.04
+      flavor: lrz.medium
+      key_name: mykey
+      nics:
+      - net-id: mynetwork
+      security_groups:
+      - default
+    register: master
+  - name: Assign a floating IP to the master node
+    os_floating_ip:
+      cloud: openstack
+      state: present
+    register: master_floatingip
+  - name: associate the floating IP to the master node
+    os_server:
+      cloud: openstack
+      state: present
+      name: master
+      floating_ip: "{{ master_floatingip.floating_ip_address }}"
+
+  - name: Create slave nodes
+    os_server:
+      cloud: openstack
+      state: present
+      name: "slave{{ item }}"
+      image: Ubuntu 20.04
+      flavor: lrz.small
+      key_name: mykey
+      nics:
+      - net-id: mynetwork
+      security_groups:
+      - default
+    with_sequence: start=1 end=3
+    register: slaves
+
+  - name: Assign a floating IP to the slave nodes
+    os_floating_ip:
+      cloud: openstack
+      state: present
+    register: "{{ item.name }}_floatingip"
+    with_items: "{{ slaves.results }}"
+
+  - name: associate the floating IP to the slave node
+    os_server:
+      cloud: openstack
+      state: present
+      name: "{{ item.name }}"
+      floating_ip: "{{ item.floatingip.floating_ip_address }}"
+    with_items: "{{ slaves.results }}"

@@ -42,12 +42,15 @@
         network: "{{ master_network }}"
     - name: Allocate floating IP for Master Node
       os_floating_ip:
+        cloud: openstack
         state: present
-        pool: "{{ floating_ip_pool }}"
-    - name: Associate floating IP for Master Node
-      os_floating_ip_associate:
-        server: "{{ master_name }}"
-        floating_ip: "{{ floating_ip.address }}"
+      register: myfloatingip
+    - name: associate the floating IP to the virtual machine
+      os_server:
+        cloud: openstack
+        state: present
+        name: myvm
+        floating_ip: "{{ myfloatingip.floating_ip_address }}"
     
     # Create slave nodes
     - name: Create Slave Nodes
