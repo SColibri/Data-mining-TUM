@@ -25,230 +25,236 @@
     # System variables
     floating_ip_pool: test_floating_ip_pool
     sshKey_filename: "~/.ssh/id_rsa.pub"
+    ansible_python_interpreter: /usr/bin/python3
 
   tasks:
-    - name: authenticate with openstack
-      openstack_auth:
-        cloud: openstack
-      register: openstack_auth
-    # Create Master slave nodes
-    - name: Create Master Node
-      os_server:
-        state: present
-        name: "{{ master_name }}"
-        image: "{{ master_image }}"
-        flavor: "{{ master_flavor }}"
-        network: "{{ master_network }}"
-    - name: Allocate floating IP for Master Node
-      os_floating_ip:
-        state: present
-        pool: "{{ floating_ip_pool }}"
-    - name: Associate floating IP for Master Node
-      os_floating_ip_associate:
-        server: "{{ master_name }}"
-        floating_ip: "{{ floating_ip.address }}"
-    
-    # Create slave nodes
-    - name: Create Slave Nodes
-      os_server:
-        state: present
-        name: "{{ slave_name_prefix }}-{{ item }}"
-        image: "{{ slave_image }}"
-        flavor: "{{ slave_flavor }}"
-        network: "{{ slave_network }}"
-      with_sequence: start={{ slave_start }} end={{ slave_end }}
-    - name: Allocate floating IP for Slave Nodes
-      os_floating_ip:
-        state: present
-        pool: "{{ floating_ip_pool }}"
-      loop: "{{ groups['all'] }}"
-      loop_control:
-        loop_var: slave_name
-    - name: Associate floating IP for slave nodes
-      os_floating_ip_associate:
-        server: "{{ slave_name }}"
-        floating_ip: "{{ floating_ip.address }}"
-      loop: "{{ groups['all'] }}"
-      loop_control:
-        loop_var: slave_name
-    
-    # SSh  key
-    - name: Add SSH key to all nodes
-      authorized_key:
-        user: root
-        key: "{{ lookup('file', 'sshKey_filename') }}"
-        state: present
-    
-    # .ssh/config setup
-    - name: Create template for .ssh/config
-      template:
-        src: ssh_config.j2
-        dest: /tmp/ssh_config
-      with_items: "{{ groups['all'] }}"
-      vars:
-        ssh_key_path: "~/.ssh/id_rsa"
-    
-    - name: Copy ssh config to remote nodes
-      copy:
-        src: /tmp/ssh_config
-        dest: /root/.ssh/config
-        mode: 0600
-        owner: root
-        group: root
-      with_items: "{{ groups['all'] }}"
-      vars:
-        node_ip: "{{ item.floating_ip.address }}"
-    
-    # Installations
+  - name: Authenticate with OpenStack
+    os_auth:
+      cloud: my_openstack_cloud
+      auth:
+        auth_url: https://cc.lrz.de:5000/v3
+        username: "ge59waw2"
+        project_id: 022fbb4c5bd54c858349e38705e4d75a
+        project_name: "ge59waw2"
+        user_domain_name: "ADS"
+  # Create Master slave nodes
+  - name: Create Master Node
+    os_server:
+      state: present
+      name: "{{ master_name }}"
+      image: "{{ master_image }}"
+      flavor: "{{ master_flavor }}"
+      network: "{{ master_network }}"
+  - name: Allocate floating IP for Master Node
+    os_floating_ip:
+      state: present
+      pool: "{{ floating_ip_pool }}"
+  - name: Associate floating IP for Master Node
+    os_floating_ip_associate:
+      server: "{{ master_name }}"
+      floating_ip: "{{ floating_ip.address }}"
+  
+  # Create slave nodes
+  - name: Create Slave Nodes
+    os_server:
+      state: present
+      name: "{{ slave_name_prefix }}-{{ item }}"
+      image: "{{ slave_image }}"
+      flavor: "{{ slave_flavor }}"
+      network: "{{ slave_network }}"
+    with_sequence: start={{ slave_start }} end={{ slave_end }}
+  - name: Allocate floating IP for Slave Nodes
+    os_floating_ip:
+      state: present
+      pool: "{{ floating_ip_pool }}"
+    loop: "{{ groups['all'] }}"
+    loop_control:
+      loop_var: slave_name
+  - name: Associate floating IP for slave nodes
+    os_floating_ip_associate:
+      server: "{{ slave_name }}"
+      floating_ip: "{{ floating_ip.address }}"
+    loop: "{{ groups['all'] }}"
+    loop_control:
+      loop_var: slave_name
+  
+  # SSh  key
+  - name: Add SSH key to all nodes
+    authorized_key:
+      user: root
+      key: "{{ lookup('file', 'sshKey_filename') }}"
+      state: present
+  
+  # .ssh/config setup
+  - name: Create template for .ssh/config
+    template:
+      src: ssh_config.j2
+      dest: /tmp/ssh_config
+    with_items: "{{ groups['all'] }}"
+    vars:
+      ssh_key_path: "~/.ssh/id_rsa"
+  
+  - name: Copy ssh config to remote nodes
+    copy:
+      src: /tmp/ssh_config
+      dest: /root/.ssh/config
+      mode: 0600
+      owner: root
+      group: root
+    with_items: "{{ groups['all'] }}"
+    vars:
+      node_ip: "{{ item.floating_ip.address }}"
+  
+  # Installations
 
-  # APT INSTALL START
-    # -----------------------------------------------------------
-    # This section installs updates apt install manager
-    # -----------------------------------------------------------
-    - name: update package list
-      apt:
-        update_cache: yes
+# APT INSTALL START
+  # -----------------------------------------------------------
+  # This section installs updates apt install manager
+  # -----------------------------------------------------------
+  - name: update package list
+    apt:
+      update_cache: yes
 
-    - name: upgrade packages
-      apt:
-        upgrade: dist
-  # APT INSTALL END
+  - name: upgrade packages
+    apt:
+      upgrade: dist
+# APT INSTALL END
 
-  # JAVA INSTALL START
-    # -----------------------------------------------------------
-    # This section installs and configures Java 8 used by hadoop
-    # -----------------------------------------------------------
-    - name: Install Java
-      apt:
-        name: openjdk-8-jdk
-        state: present
-    - name: Install Hadoop
-      become: true
-      unarchive:
-        src: http://ftp.tudelft.nl/apache/hadoop/common/hadoop-3.3.0/hadoop-3.3.0.tar.gz
-        dest: /usr/local/
-        remote_src: yes
-      shell: ln -s /usr/local/hadoop-3.3.0 /usr/local/hadoop
-  # JAVA INSTALL END
+# JAVA INSTALL START
+  # -----------------------------------------------------------
+  # This section installs and configures Java 8 used by hadoop
+  # -----------------------------------------------------------
+  - name: Install Java
+    apt:
+      name: openjdk-8-jdk
+      state: present
+  - name: Install Hadoop
+    become: true
+    unarchive:
+      src: http://ftp.tudelft.nl/apache/hadoop/common/hadoop-3.3.0/hadoop-3.3.0.tar.gz
+      dest: /usr/local/
+      remote_src: yes
+    shell: ln -s /usr/local/hadoop-3.3.0 /usr/local/hadoop
+# JAVA INSTALL END
 
-  # PYtHON INSTALL START
-    # -----------------------------------------------------------
-    # This section installs python 3 and needed packages
-    # -----------------------------------------------------------
-    - name: install python and pip
-      apt:
-        name: python3 python3-pip
-        state: present
+# PYtHON INSTALL START
+  # -----------------------------------------------------------
+  # This section installs python 3 and needed packages
+  # -----------------------------------------------------------
+  - name: install python and pip
+    apt:
+      name: python3 python3-pip
+      state: present
 
-    - name: install pyspark
-      pip:
-        name: pyspark
-        state: present
-        executable: pip3
-    
-    - name: install numpy
-      pip:
-        name: numpy
-        state: present
-        executable: pip3
+  - name: install pyspark
+    pip:
+      name: pyspark
+      state: present
+      executable: pip3
+  
+  - name: install numpy
+    pip:
+      name: numpy
+      state: present
+      executable: pip3
 
-    - name: install matplotlib
-      pip:
-        name: matplotlib
-        state: present
-        executable: pip3
+  - name: install matplotlib
+    pip:
+      name: matplotlib
+      state: present
+      executable: pip3
 
-    - name: install jupyter
-      pip:
-        name: jupyter
-        state: present
-        executable: pip3
+  - name: install jupyter
+    pip:
+      name: jupyter
+      state: present
+      executable: pip3
 
-  # PYtHON INSTALL END
+# PYtHON INSTALL END
 
-  # HADOOP INSTALL START
-    # -----------------------------------------------------------
-    # This section installs and configures hadoop
-    # -----------------------------------------------------------
-    - name: Configure Hadoop
-      template:
-        src: hadoop-env.j2
-        dest: /usr/local/hadoop/etc/hadoop/hadoop-env.sh
-    
-    - name: Create template for core-site.xml
-      template:
-        src: core-site.xml.j2
-        dest: /usr/local/hadoop/etc/hadoop/core-site.xml
-    
-    - name: Set slave IP addresses
-      set_fact:
-        slave_ips: "{{ groups['all'] | map(attribute='floating_ip.address') | list }}"
-    
-    - name: Update core-site.xml with slave IP addresses
-      lineinfile:
-        path: /usr/local/hadoop/etc/hadoop/core-site.xml
-        regexp: '^dfs.hosts'
-        line: "<property>\n  <name>dfs.hosts</name>\n  <value>{{ slave_ips | join(',') }}</value>\n</property>"
-    
-    - name: Start Hadoop
-      shell: /usr/local/hadoop/sbin/start-dfs.sh
-  # HADOOP INSTALL END
+# HADOOP INSTALL START
+  # -----------------------------------------------------------
+  # This section installs and configures hadoop
+  # -----------------------------------------------------------
+  - name: Configure Hadoop
+    template:
+      src: hadoop-env.j2
+      dest: /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+  
+  - name: Create template for core-site.xml
+    template:
+      src: core-site.xml.j2
+      dest: /usr/local/hadoop/etc/hadoop/core-site.xml
+  
+  - name: Set slave IP addresses
+    set_fact:
+      slave_ips: "{{ groups['all'] | map(attribute='floating_ip.address') | list }}"
+  
+  - name: Update core-site.xml with slave IP addresses
+    lineinfile:
+      path: /usr/local/hadoop/etc/hadoop/core-site.xml
+      regexp: '^dfs.hosts'
+      line: "<property>\n  <name>dfs.hosts</name>\n  <value>{{ slave_ips | join(',') }}</value>\n</property>"
+  
+  - name: Start Hadoop
+    shell: /usr/local/hadoop/sbin/start-dfs.sh
+# HADOOP INSTALL END
 
-  # SPARK INSTALL START
-    # -----------------------------------------------------------
-    # This section installs and configures Spark
-    # -----------------------------------------------------------
-    - name: Install Spark
-      become: true
-      unarchive:
-        src: https://archive.apache.org/dist/spark/spark-3.0.1/spark-3.0.1-bin-hadoop3.3.tgz
-        dest: /usr/local/
-        remote_src: yes
-      shell: ln -s /usr/local/spark-3.0.1-bin-hadoop3.3 /usr/local/spark
-    - name: Configure Spark
-      template:
-        src: spark-env.j2
-        dest: /usr/local/spark/conf/spark-env.sh
-  # SPARK INSTALL END
-    
-  # VISUAL CODE INSTALL START
-    # -----------------------------------------------------------
-    # This section installs common extensions on the master node
-    # -----------------------------------------------------------
-    - name: install visual studio code
-      shell: |
-        apt-get install software-properties-common apt-transport-https wget -y
-        wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | apt-key add -
-        add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
-        apt-get update
-        apt-get install code -y
+# SPARK INSTALL START
+  # -----------------------------------------------------------
+  # This section installs and configures Spark
+  # -----------------------------------------------------------
+  - name: Install Spark
+    become: true
+    unarchive:
+      src: https://archive.apache.org/dist/spark/spark-3.0.1/spark-3.0.1-bin-hadoop3.3.tgz
+      dest: /usr/local/
+      remote_src: yes
+    shell: ln -s /usr/local/spark-3.0.1-bin-hadoop3.3 /usr/local/spark
+  - name: Configure Spark
+    template:
+      src: spark-env.j2
+      dest: /usr/local/spark/conf/spark-env.sh
+# SPARK INSTALL END
+  
+# VISUAL CODE INSTALL START
+  # -----------------------------------------------------------
+  # This section installs common extensions on the master node
+  # -----------------------------------------------------------
+  - name: install visual studio code
+    shell: |
+      apt-get install software-properties-common apt-transport-https wget -y
+      wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | apt-key add -
+      add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
+      apt-get update
+      apt-get install code -y
 
-    - name: install ansible extension
-      shell: code --install-extension vscoss.vscode-ansible --force
+  - name: install ansible extension
+    shell: code --install-extension vscoss.vscode-ansible --force
 
-    # Python environment
-    - name: install python extension
-      shell: code --install-extension ms-python.python --force
+  # Python environment
+  - name: install python extension
+    shell: code --install-extension ms-python.python --force
 
-    - name: install pylint extension
-      shell: code --install-extension ms-python.pylint --force
+  - name: install pylint extension
+    shell: code --install-extension ms-python.pylint --force
 
-    - name: install autopep8 extension
-      shell: code --install-extension ms-python.autopep8 --force
+  - name: install autopep8 extension
+    shell: code --install-extension ms-python.autopep8 --force
 
-    - name: install flake8 extension
-      shell: code --install-extension hbenl.vscode-flake8 --force
+  - name: install flake8 extension
+    shell: code --install-extension hbenl.vscode-flake8 --force
 
-    - name: install pydocstyle extension
-      shell: code --install-extension njpwerner.autodocstring --force 
+  - name: install pydocstyle extension
+    shell: code --install-extension njpwerner.autodocstring --force 
 
-    - name: install yapf extension
-      shell: code --install-extension ms-python.yapf --force
+  - name: install yapf extension
+    shell: code --install-extension ms-python.yapf --force
 
-    - name: install mypy extension
-      shell: code --install-extension ms-python.mypy --force
+  - name: install mypy extension
+    shell: code --install-extension ms-python.mypy --force
 
-    - name: install jupyter notebook extension
-      shell: code --install-extension ms-python.jupyter --force
+  - name: install jupyter notebook extension
+    shell: code --install-extension ms-python.jupyter --force
 
-  # VISUAL CODE INSTALL END
+# VISUAL CODE INSTALL END
