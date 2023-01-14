@@ -1,7 +1,3 @@
-- name: authenticate with openstack
-  openstack_auth:
-    cloud: openstack
-  register: openstack_auth
 
 - name: Create Hadoop and Spark Cluster
   hosts: openstack
@@ -31,6 +27,10 @@
     sshKey_filename: "~/.ssh/id_rsa.pub"
 
   tasks:
+  - name: authenticate with openstack
+    openstack_auth:
+      cloud: openstack
+    register: openstack_auth
   # Create Master slave nodes
   - name: Create Master Node
     os_server:
