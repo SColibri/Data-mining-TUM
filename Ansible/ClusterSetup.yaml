@@ -188,7 +188,7 @@
     lineinfile:
       path: /usr/local/hadoop/etc/hadoop/core-site.xml
       regexp: '^dfs.hosts'
-      line: '<property>\n  <name>dfs.hosts</name>\n  <value>{{ slave_ips | join(',') }}</value>\n</property>'
+      line: "<property>\n  <name>dfs.hosts</name>\n  <value>{{ slave_ips | join(',') }}</value>\n</property>"
   
   - name: Start Hadoop
     shell: /usr/local/hadoop/sbin/start-dfs.sh
