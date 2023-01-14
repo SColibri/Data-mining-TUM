@@ -85,8 +85,8 @@
       src: ssh_config.j2
       dest: /tmp/ssh_config
     with_items: "{{ groups['all'] }}"
-      vars:
-        ssh_key_path: "~/.ssh/id_rsa"
+    vars:
+      ssh_key_path: "~/.ssh/id_rsa"
   
   - name: Copy ssh config to remote nodes
     copy:
