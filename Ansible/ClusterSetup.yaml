@@ -153,16 +153,16 @@
       executable: pip3
 
   - name: install matplotlib
-      pip:
-        name: matplotlib
-        state: present
-        executable: pip3
+    pip:
+      name: matplotlib
+      state: present
+      executable: pip3
 
   - name: install jupyter
-      pip:
-        name: jupyter
-        state: present
-        executable: pip3
+    pip:
+      name: jupyter
+      state: present
+      executable: pip3
 
 # PYtHON INSTALL END
 
