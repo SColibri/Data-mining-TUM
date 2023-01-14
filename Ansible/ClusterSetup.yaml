@@ -11,13 +11,13 @@
     - openstack.yml
   vars:
     # Master setup parameters
-    master_name: hadoop-master
+    master_name: master
     master_image: Ubuntu 20.04
     master_flavor: m1.medium
     master_network: test_network
 
     # Slave setup parameters
-    slave_name_prefix: hadoop-slave
+    slave_name_prefix: slave
     slave_image: Ubuntu 20.04
     slave_flavor: m1.small
     slave_network: test_network
