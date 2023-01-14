@@ -1,7 +1,14 @@
+- name: authenticate with openstack
+  openstack_auth:
+    cloud: openstack
+  register: openstack_auth
+
 - name: Create Hadoop and Spark Cluster
-  hosts: localhost
-  connection: local
+  hosts: openstack
+  become: yes
   gather_facts: false
+  vars_files:
+    - openstack.yml
   vars:
     # Master setup parameters
     master_name: hadoop-master
