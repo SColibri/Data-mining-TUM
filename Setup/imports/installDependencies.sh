@@ -15,6 +15,15 @@ installDependencies()
         exit 0
     fi
 
+    # ssh
+    if [ $( isInstalled "ssh" ) -eq 1 ]
+    then
+        echo "ssh is installed, updating..\n" 
+    else
+        echo "ssh is not installed"
+        sudo apt install ssh -y
+    fi
+
     # java
     if [ $( isInstalled "openjdk-8-jre-headless" ) -eq 1 ]
     then
