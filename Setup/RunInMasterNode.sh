@@ -42,7 +42,7 @@ done
 # Implementation is found in the 
 # installDependencies.sh file
 # -----------------------------------------
-echo -e $( installDependencies )
+# echo -e $( installDependencies )
 
 # -----------------------------------------
 # Download all files
@@ -50,7 +50,6 @@ echo -e $( installDependencies )
 if [ $DOWNLOAD_WIKI -eq 1 ]
 then
     echo "Downloading Wiki.."
-    
 fi
 
 if [ $DOWNLOAD_EMBEDDINGS -eq 1 ]

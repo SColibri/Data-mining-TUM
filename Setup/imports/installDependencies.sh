@@ -3,12 +3,12 @@
 # Installs all dependencies needed for hadoop, and also installs hadoop/spark
 installDependencies()
 {
-
+    sudo apt upgrade
     # apt
     if [ $( isInstalled "apt" ) -eq 1 ]
     then
         echo "apt is installed, updating..\n" 
-        # sudo apt-get update -y
+        sudo apt-get update -y
     else
         echo "apt is not installed, please install or add the installation to this script\n"
         exit 0
@@ -50,17 +50,33 @@ installDependencies()
     if [ $( isInstalled "python" ) -eq 1 ]
     then
         echo "python is installed\n"
+        sudo apt-get install pyspark
+        sudo apt-get install python3-pip
+
     else
         echo "python is not installed, installing..\n"
-        # sudo apt-get install python3
+        sudo apt-get install python3
         
+    fi
+
+    # yarn
+    if [ $( isInstalled "python" ) -eq 1 ]
+    then
+        echo "yarn is installed"
+        
+    else
+        echo "yarn is not installed, installing.."
+        sudo apt-get install yarn
     fi
 
     # hadoop
     if [ $"HADOOP_HOME" == "" ]
     then
         echo "hadoop is not installed, installing hadoop 3.3.4\n"
-    
+        sudo wget http://apache.cs.utah.edu/hadoop/common/current/hadoop-3.3.4.tar.gz
+        sudo tar -xzf hadoop-3.3.4.tar.gz
+        sudo mv hadoop-3.3.4 hadoop
+
     else
         echo "hadoop is installed\n"
 
@@ -70,7 +86,10 @@ installDependencies()
     if [ $"SPARK_HOME" == "" ]
     then
         echo "spark is not installed, installing spark 3.3.1\n"
-    
+        wget https://dlcdn.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
+        tar -xzf spark-3.3.1-bin-hadoop3.tgz
+        mv spark-3.3.1-bin-hadoop3 spark
+
     else
         echo "spark is installed\n"
 
