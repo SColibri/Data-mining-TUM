@@ -55,7 +55,7 @@ fi
 if [ $DOWNLOAD_EMBEDDINGS -eq 1 ]
 then
     echo "Downloading embedding.."
-    
+    # wget https://rostlab.org/public/richter/sampled_embeddings.csv.gz
 fi
 
 # -----------------------------------------
